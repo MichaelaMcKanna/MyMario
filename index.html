@@ -90,7 +90,7 @@ const maps =[
   '=    %   =*=%=                              ',
   '=                                           ',
   '=                              -+           ',
-  '=                     ^   ^    ()           ',
+  '=                  ^      ^    ()           ',
   '=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx   xxxxxxxx',
   '                                            ',
 ], [                                        
@@ -98,11 +98,11 @@ const maps =[
   '|                         8                 |',
   '|                                           |',
   '|                                           |',
-  '|                                           |',
+  '|      !                                    |',
   '|     ss8ss               s                 |',
   '|                      s  s  s              |',
   '|                   s  s  s  s  s         -+|',
-  '|         !     s   s  s  s  s  s   s     ()|',
+  '|    !    !     s   s  s  s  s  s   s     ()|',
   '|zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz|',
                                                      
 ]]
@@ -110,7 +110,7 @@ const maps =[
 const levelConfig = {
   width: 20,
   height: 20,
-  '$':[sprite('coin'), 'coin', scale(0.4), {timer:5}],
+  '$':[sprite('coin'), 'coin', scale(0.4), {timer:3}],
   '%':[sprite('question-block'),'coin-surprise', scale(0.14), solid()],
   '*':[sprite('question-block'),'mushroom-surprise', scale(0.14), solid()],
   '^':[sprite('evil-mushroom'),'dangerous', {dir: -1}, scale(0.4), solid()],
@@ -119,7 +119,7 @@ const levelConfig = {
   ')':[sprite('pipe-right'), scale(0.4), solid()],
   '-':[sprite('pipe-top-left'),'pipe' , scale(0.4), solid()],
   '+':[sprite('pipe-top-right'), 'pipe', scale(0.4), solid()],
-  '#':[sprite('mushroom'), scale(0.1),'mushroom', body()],
+  '#':[sprite('mushroom'), scale(0.1),'mushroom', body(), {timer:10}],
   'x':[sprite('brick'), scale(0.14), solid()],
   '=':[sprite('block'), 'wall', scale(0.14), solid()],
 
@@ -127,7 +127,7 @@ const levelConfig = {
   'z':[sprite('blue-block'), scale(0.4), solid()],
   '@':[sprite('blue-brick'), scale(), solid()],
   's':[sprite('blue-steel'), 'wall', scale(0.3), solid()],
-  '!':[sprite('evil-blue-mushroom'),'dangerous',{dir: -1}, scale(0.3), solid()],
+  '!':[sprite('evil-blue-mushroom'),'dangerous',{dir: -1}, scale(0.3), solid(), body()],
   '7':[sprite('blue-surprise'),'blue-surprise', scale(0.3), solid()],
   '{':[sprite('unboxed-blue'), scale(0.3), solid()],
   '8':[sprite('blue-surprise'),'blue-mushroom-surprise', scale(0.362), solid()],
@@ -154,27 +154,11 @@ const player = add([
     player.changeSprite('mario-right')
     player.move(moveSpeed, 0)
   })
-//what happens when player collides with something dangerous
-player.collides('dangerous', (d) =>{
-  if(isJumping){
-    destroy(d)
-    camShake(3)
-  }
-  else{
-  go('lose', {score:scoreLabel.value})
-  }
-})
 
-player.action(()=>{
-  camPos(player.pos)
-  if(player.pos.y >= fallDeath){
-    go('lose', {score:scoreLabel.value})
-  }
-})
 //keep track of score
 let scoreLabel = add([
-    text(scoreGlobal),
-    pos(30,6),
+    text('score ' + (scoreGlobal)),
+    pos(30,30),
     layer('ui'),
     {
       value: scoreGlobal,
@@ -182,8 +166,7 @@ let scoreLabel = add([
   ])
 //show what level we are on 
 const level = add([
-  text('level ' + parseInt(levelIndex + 1)), pos(40, 6)])
-
+  text('level ' + parseInt(levelIndex + 1)), pos(30, 50)])
 
 //what happens when mario is big 
 function big(){
@@ -231,7 +214,7 @@ keyPress('space', ()=>{
 })
 
 player.on('headbump', (obj)=>{
-  camShake(3)
+  
   if(obj.is('coin-surprise')){
     gameLevel.spawn('$', obj.gridPos.sub(0,1.5))
     destroy(obj)
@@ -265,7 +248,7 @@ action('mushroom', (m)=>{
 player.collides('coin', (c)=>{
   destroy(c)
   scoreLabel.value++
-  scoreLabel.text = scoreLabel.value
+  scoreLabel.text = `score ${scoreLabel.value}`
 })
 
 //make coins disappear after 5 seconds
@@ -274,6 +257,33 @@ action('coin', (c)=>{
   if(c.timer <= 0){
     destroy(c)
     scoreLabel.value++
+    scoreLabel.text = `score ${scoreLabel.value}`
+  }
+})
+action('mushroom', m =>{
+  m.timer -= dt()
+  if(m.timer <= 0){
+    destroy(m)
+  }
+})
+//what happens when player collides with something dangerous
+player.collides('dangerous', (d) =>{
+  if(isJumping){
+    destroy(d)
+    camShake(3)
+    scoreLabel.value = scoreLabel.value + 100
+    scoreLabel.text = `score ${scoreLabel.value}`
+    
+  }
+  else{
+  go('lose', {score:scoreLabel.value})
+  }
+})
+
+player.action(()=>{
+  camPos(player.pos)
+  if(player.pos.y >= fallDeath){
+    go('lose', {score:scoreLabel.value})
   }
 })
 
@@ -282,8 +292,6 @@ player.collides('mushroom',(m)=>{
   destroy(m)
 })
 
-
-
 action('dangerous', (d)=>{
   d.move(d.dir * enemySpeed, 0)
 })
@@ -291,7 +299,6 @@ action('dangerous', (d)=>{
 collides('dangerous','wall', (d) =>{
   d.dir = -d.dir
 })
-
 
 player.collides('pipe', ()=>{
   keyPress('down', ()=>{
